@@ -55,7 +55,7 @@ class Hades:
                 artist_name = item["track"]["artists"][0]["name"].replace(" ", "+")
                 pl_tracks.append(f"{track_name}+{artist_name}".encode("utf8"))
 
-            offset = (offset + len(pl_items),)
+            offset = (offset + len(pl_items))
             pl_items = self.sp.playlist_items(
                 self.pl_uri,
                 offset=offset,
