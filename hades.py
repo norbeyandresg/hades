@@ -87,8 +87,10 @@ class Hades:
                     f"https://www.youtube.com/results?search_query={track}"
                 )
                 video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
-                url = "https://www.youtube.com/watch?v=" + video_ids[0]
-                ydl.download([url])
+
+                if video_ids:
+                    url = "https://www.youtube.com/watch?v=" + video_ids[0]
+                    ydl.download([url])
 
 
 if __name__ == "__main__":
