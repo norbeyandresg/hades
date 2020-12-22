@@ -70,8 +70,7 @@ class Hades:
         while len(pl_items) > 0:
             for item in pl_items:
                 track_name = item["track"]["name"].replace(" ", "+")
-                artist_name = item["track"]["artists"][0]["name"].replace(
-                    " ", "+")
+                artist_name = item["track"]["artists"][0]["name"].replace(" ", "+")
                 pl_tracks.append(f"{track_name}+{artist_name}".encode("utf8"))
 
             offset = (offset + len(pl_items))
@@ -105,8 +104,7 @@ class Hades:
                 html = rq.urlopen(
                     f"https://www.youtube.com/results?search_query={track}"
                 )
-                video_ids = re.findall(
-                    r"watch\?v=(\S{11})", html.read().decode())
+                video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
 
                 if video_ids:
                     url = "https://www.youtube.com/watch?v=" + video_ids[0]
