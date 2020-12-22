@@ -18,7 +18,6 @@ python hades.py [OPTIONS] 'your_playlist_uri'
 ```
 
 ## Options
-
-``` shell
 	-e or --embed                   Download and embed youtube thumbnails into mp3                                   
-```
+
+
