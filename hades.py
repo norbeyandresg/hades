@@ -18,25 +18,43 @@ class Hades:
     __CLIENT_ID = ""
     __CLIENT_SECRET = ""
 
-    def __init__(self, pl_uri):
+    def __init__(self, pl_uri, embed):
         self.auth_manager = SpotifyClientCredentials(
             client_id=self.__CLIENT_ID, client_secret=self.__CLIENT_SECRET
         )
         self.sp = spotipy.Spotify(auth_manager=self.auth_manager)
         self.pl_uri = pl_uri
+        self.embed = embed
 
     def get_ydl_opts(self, path):
-        return {
-            "format": "bestaudio/best",
-            "outtmpl": f"./{path}/%(title)s.%(ext)s",
-            "postprocessors": [
-                {
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "320",
-                }
-            ],
-        }
+        if self.embed:
+            return {
+                "writethumbnail": True,
+                "format": "bestaudio/best",
+                "outtmpl": f"./{path}/%(title)s.%(ext)s",
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "320",
+                    },
+                    {
+                        "key": "EmbedThumbnail",
+                    },
+                ],
+            }
+        else:
+            return {
+                "format": "bestaudio/best",
+                "outtmpl": f"./{path}/%(title)s.%(ext)s",
+                "postprocessors": [
+                    {
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "mp3",
+                        "preferredquality": "320",
+                    }
+                ],
+            }
 
     def get_playlist_details(self):
         offset = 0
@@ -55,7 +73,7 @@ class Hades:
                 artist_name = item["track"]["artists"][0]["name"].replace(" ", "+")
                 pl_tracks.append(f"{track_name}+{artist_name}".encode("utf8"))
 
-            offset = (offset + len(pl_items),)
+            offset = (offset + len(pl_items))
             pl_items = self.sp.playlist_items(
                 self.pl_uri,
                 offset=offset,
@@ -98,9 +116,13 @@ if __name__ == "__main__":
         "playlist_uri", metavar="PL_URI", type=str, help="Spotify playlist uri"
     )
 
+    parser.add_argument('-e', '--embed', action='store_true',
+                        help='embeds youtube thumbnail into mp3')
+
     args = parser.parse_args()
+
     if args.playlist_uri:
-        hades = Hades(args.playlist_uri)
+        hades = Hades(args.playlist_uri, args.embed)
         hades.download_tracks()
     else:
         print("Please provide a playlist uri to download")
