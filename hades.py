@@ -6,6 +6,7 @@ import re
 import spotipy
 from youtube_dl import YoutubeDL
 from urllib import request as rq
+from urllib.parse import quote
 from argparse import ArgumentParser
 from spotipy.oauth2 import SpotifyClientCredentials
 
@@ -18,43 +19,26 @@ class Hades:
     __CLIENT_ID = ""
     __CLIENT_SECRET = ""
 
-    def __init__(self, pl_uri, embed):
+    def __init__(self, pl_uri):
         self.auth_manager = SpotifyClientCredentials(
             client_id=self.__CLIENT_ID, client_secret=self.__CLIENT_SECRET
         )
         self.sp = spotipy.Spotify(auth_manager=self.auth_manager)
         self.pl_uri = pl_uri
-        self.embed = embed
 
     def get_ydl_opts(self, path):
-        if self.embed:
-            return {
-                "writethumbnail": True,
-                "format": "bestaudio/best",
-                "outtmpl": f"./{path}/%(title)s.%(ext)s",
-                "postprocessors": [
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3",
-                        "preferredquality": "320",
-                    },
-                    {
-                        "key": "EmbedThumbnail",
-                    },
-                ],
-            }
-        else:
-            return {
-                "format": "bestaudio/best",
-                "outtmpl": f"./{path}/%(title)s.%(ext)s",
-                "postprocessors": [
-                    {
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "mp3",
-                        "preferredquality": "320",
-                    }
-                ],
-            }
+        return {
+            "format": "bestaudio/best",
+            "outtmpl": f"{path}/%(id)s.%(ext)s",
+            "ignoreerrors": True,
+            "postprocessors": [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "320",
+                }
+            ],
+        }
 
     def get_playlist_details(self):
         offset = 0
@@ -69,11 +53,19 @@ class Hades:
         pl_tracks = []
         while len(pl_items) > 0:
             for item in pl_items:
-                track_name = item["track"]["name"].replace(" ", "+")
-                artist_name = item["track"]["artists"][0]["name"].replace(" ", "+")
-                pl_tracks.append(urllib.parse.quote(f"{track_name}+{artist_name}"))
+                if item["track"]:
+                    track_name = item["track"]["name"].replace("/", "_")
+                    artist_name = item["track"]["artists"][0]["name"].replace("/", "_")
+                    pl_tracks.append(
+                        {
+                            "uri": quote(
+                                f'{track_name.replace(" ", "+")}+{artist_name.replace(" ", "+")}'
+                            ),
+                            "track_name": f"{track_name} - {artist_name}",
+                        }
+                    )
 
-            offset = (offset + len(pl_items))
+            offset = offset + len(pl_items)
             pl_items = self.sp.playlist_items(
                 self.pl_uri,
                 offset=offset,
@@ -95,20 +87,36 @@ class Hades:
         except OSError:
             print("Creation of the download directory failed")
 
+    def check_existing_tracks(self, playlist):
+        existing_tracks = os.listdir(playlist["pl_name"])
+        tracks = [
+            track
+            for track in playlist["pl_tracks"]
+            if f"{track['track_name']}.mp3" not in existing_tracks
+        ]
+        return tracks
+
     def download_tracks(self):
         pl_details = self.get_playlist_details()
         path = self.create_download_directory(pl_details["pl_name"])
-
+        tracks = self.check_existing_tracks(pl_details)
+        print("tracks to download", len(tracks))
         with YoutubeDL(self.get_ydl_opts(path)) as ydl:
-            for track in pl_details["pl_tracks"]:
+            for track in tracks:
                 html = rq.urlopen(
-                    f"https://www.youtube.com/results?search_query={track}"
+                    f"https://www.youtube.com/results?search_query={track['uri']}"
                 )
                 video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
 
                 if video_ids:
                     url = "https://www.youtube.com/watch?v=" + video_ids[0]
-                    ydl.download([url])
+                    metadata = ydl.extract_info(url, download=False)
+                    downloaded_track = ydl.download([url])
+
+                    # Update downloaded file name
+                    src = f"{path}/{metadata['id']}.mp3"
+                    dst = f"{path}/{track['track_name']}.mp3"
+                    os.rename(src, dst)
 
 
 if __name__ == "__main__":
@@ -116,13 +124,10 @@ if __name__ == "__main__":
         "playlist_uri", metavar="PL_URI", type=str, help="Spotify playlist uri"
     )
 
-    parser.add_argument('-e', '--embed', action='store_true',
-                        help='embeds youtube thumbnail into mp3')
-
     args = parser.parse_args()
 
     if args.playlist_uri:
-        hades = Hades(args.playlist_uri, args.embed)
+        hades = Hades(args.playlist_uri)
         hades.download_tracks()
     else:
         print("Please provide a playlist uri to download")
