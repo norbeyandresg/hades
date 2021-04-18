@@ -14,10 +14,5 @@ pip install -r requirements.txt
 Just go to your playlist, click on share and copy the Playlist URI.
 
 ``` shell
-python hades.py [OPTIONS] 'your_playlist_uri'
+python hades.py 'your_playlist_uri'
 ```
-
-## Options
-	-e or --embed                   Download and embed youtube thumbnails into mp3                                   
-
-
