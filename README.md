@@ -3,7 +3,7 @@
  download it to the specified path with the script root path as parent
  
 ## Installing
-To use **Hades** you need to create an App on the [Spotify Developers Dashboard](https://developer.spotify.com/dashboard/applications) and setup your `CLIENT_ID` and `CLIENT_SECRET` on the `hades.py` file to connect to the Spotify API.
+To use **Hades** you need to create an App on the [Spotify Developers Dashboard](https://developer.spotify.com/dashboard/applications) and setup your `CLIENT_ID` and `CLIENT_SECRET` as environment variables to connect to the Spotify API. In order to list and download your own playlists you also need to setup your `USER_ID` in your environment variables.
 
 
 ``` shell
@@ -11,8 +11,16 @@ pip install -r requirements.txt
 ```
 
 ## Usage
-Just go to your playlist, click on share and copy the Playlist URI.
+Just go to your playlist, click on share and copy the Playlist URI. 
+To use the shell interface run
 
 ``` shell
-python hades.py 'your_playlist_uri'
+python hades_ui.py
+```
+
+
+you can also pass your `playlist_uri` as a param
+
+``` shell
+python hades.py --pl_uri [playlist_uri]
 ```
