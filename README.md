@@ -22,5 +22,5 @@ python hades_ui.py
 you can also pass your `playlist_uri` as a param
 
 ``` shell
-python hades.py --pl_uri [playlist_uri]
+python hades_ui.py --pl_uri [playlist_uri]
 ```
