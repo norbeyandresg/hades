@@ -68,8 +68,14 @@ class Hades:
         while len(pl_items) > 0:
             for item in pl_items:
                 if item["track"]:
-                    track_name = item["track"]["name"].replace("/", "_")
-                    artist_name = item["track"]["artists"][0]["name"].replace("/", "_")
+                    track_name = (
+                        item["track"]["name"].replace("/", "_").replace('"', " ")
+                    )
+                    artist_name = (
+                        item["track"]["artists"][0]["name"]
+                        .replace("/", "_")
+                        .replace('"', " ")
+                    )
                     pl_tracks.append(
                         {
                             "uri": quote(
