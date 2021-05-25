@@ -2,7 +2,6 @@
 import os
 from argparse import ArgumentParser
 
-from examples import custom_style_2 as style
 from pyfiglet import figlet_format
 from PyInquirer import Separator, prompt
 
@@ -49,7 +48,7 @@ class HadesUI:
                 ],
             },
         ]
-        answer = prompt(menu, style=style)
+        answer = prompt(menu)
         action = getattr(self, answer["action"])
         action()
 
@@ -81,7 +80,7 @@ class HadesUI:
                 "default": True,
             }
         ]
-        response = prompt(confirm, style=style)["continue"]
+        response = prompt(confirm)["continue"]
         if response:
             self.reset_screen()
             self.main_menu()

@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 from urllib import request as rq
 from urllib.parse import quote
 
+import eyed3
 import spotipy
 from pyfiglet import figlet_format
 from PyInquirer import print_json, prompt
@@ -54,13 +55,17 @@ class Hades:
             for pl in self.sp.user_playlists(self.__USER_ID).get("items")
         ]
 
+    def normalize_str(self, string):
+        return string.replace("/", "_").replace('"', " ")
+
     def get_playlist_details(self, pl_uri):
         offset = 0
+        fields = "items.track.track_number,items.track.name,items.track.artists.name,items.track.album.name,items.track.album.release_date,total,items.track.album.images"
         pl_name = self.sp.playlist(pl_uri)["name"]
         pl_items = self.sp.playlist_items(
             pl_uri,
             offset=offset,
-            fields="items.track.name,items.track.artists.name, total",
+            fields=fields,
             additional_types=["track"],
         )["items"]
 
@@ -68,20 +73,24 @@ class Hades:
         while len(pl_items) > 0:
             for item in pl_items:
                 if item["track"]:
-                    track_name = (
-                        item["track"]["name"].replace("/", "_").replace('"', " ")
-                    )
-                    artist_name = (
+                    track_name = self.normalize_str(item["track"]["name"])
+                    artist_name = self.normalize_str(
                         item["track"]["artists"][0]["name"]
-                        .replace("/", "_")
-                        .replace('"', " ")
                     )
                     pl_tracks.append(
                         {
                             "uri": quote(
                                 f'{track_name.replace(" ", "+")}+{artist_name.replace(" ", "+")}'
                             ),
-                            "track_name": f"{track_name} - {artist_name}",
+                            "file_name": f"{artist_name} - {track_name}",
+                            "track_name": track_name,
+                            "artist_name": artist_name,
+                            "album_name": self.normalize_str(
+                                item["track"]["album"]["name"]
+                            ),
+                            "album_date": item["track"]["album"]["release_date"],
+                            "track_number": item["track"]["track_number"],
+                            "album_art": item["track"]["album"]["images"][0]["url"],
                         }
                     )
 
@@ -89,7 +98,7 @@ class Hades:
             pl_items = self.sp.playlist_items(
                 pl_uri,
                 offset=offset,
-                fields="items.track.name,items.track.artists.name, total",
+                fields=fields,
                 additional_types=["track"],
             )["items"]
 
@@ -116,6 +125,27 @@ class Hades:
         ]
         return tracks
 
+    def add_track_metadata(self, track_id, metadata, path):
+        audiofile = eyed3.load(f"{path}/{track_id}.mp3")
+        if audiofile.tag == None:
+            audiofile.initTag()
+
+        # Add basic tags
+        audiofile.tag.title = metadata["track_name"]
+        audiofile.tag.album = metadata["album_name"]
+        audiofile.tag.artist = metadata["artist_name"]
+        audiofile.tag.release_date = metadata["album_date"]
+        audiofile.tag.track_num = metadata["track_number"]
+
+        album_art = rq.urlopen(metadata["album_art"]).read()
+        audiofile.tag.images.set(3, album_art, "image/jpeg")
+        audiofile.tag.save()
+
+        # Update downloaded file name
+        src = f"{path}/{track_id}.mp3"
+        dst = f"{path}/{metadata['file_name']}.mp3"
+        os.rename(src, dst)
+
     def download_tracks(self, pl_uri):
         pl_details = self.get_playlist_details(pl_uri)
         path = self.create_download_directory(pl_details["pl_name"])
@@ -135,7 +165,4 @@ class Hades:
                     metadata = ydl.extract_info(url, download=False)
                     downloaded_track = ydl.download([url])
 
-                    # Update downloaded file name
-                    src = f"{path}/{metadata['id']}.mp3"
-                    dst = f"{path}/{track['track_name']}.mp3"
-                    os.rename(src, dst)
+                    self.add_track_metadata(metadata["id"], track, path)
