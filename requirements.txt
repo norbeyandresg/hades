@@ -2,3 +2,4 @@ youtube_dl==2021.4.26
 spotipy==2.16.1
 PyInquirer==1.0.3
 pyfiglet==0.7
+eyed3==0.9.6
