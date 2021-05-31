@@ -60,7 +60,7 @@ class HadesUI:
             {
                 "type": "input",
                 "name": "pl_uri",
-                "message": "Playlist uri to download:",
+                "message": "Playlist uri or url to download:",
                 "default": "back",
                 "validate": PlaylistURIValidator,
             }
