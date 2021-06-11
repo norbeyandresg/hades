@@ -56,7 +56,7 @@ class Hades:
         ]
 
     def normalize_str(self, string):
-        return string.replace("/", "_").replace('"', " ")
+        return string.translate(str.maketrans("\\/:*?\"<>|", "__       "))
 
     def get_playlist_details(self, pl_uri):
         offset = 0
