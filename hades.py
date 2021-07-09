@@ -56,7 +56,7 @@ class Hades:
         ]
 
     def normalize_str(self, string):
-        return string.translate(str.maketrans("\\/:*?\"<>|", "__       "))
+        return string.translate(str.maketrans('\\/:*?"<>|', "__       "))
 
     def get_playlist_details(self, pl_uri):
         offset = 0
@@ -121,7 +121,7 @@ class Hades:
         tracks = [
             track
             for track in playlist["pl_tracks"]
-            if f"{track['track_name']}.mp3" not in existing_tracks
+            if f"{track['file_name']}.mp3" not in existing_tracks
         ]
         return tracks
 

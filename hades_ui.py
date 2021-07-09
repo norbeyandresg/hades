@@ -33,7 +33,7 @@ class HadesUI:
                 "name": "action",
                 "message": "Spotify downloader manager",
                 "choices": [
-                    {"name": "Download from uri", "value": "download_playlist"},
+                    {"name": "Download from uri/url", "value": "download_playlist"},
                     {"name": "Manage my playlists", "value": "manage_playlists"},
                     {"name": "Quit", "value": "quit"},
                     Separator(),
