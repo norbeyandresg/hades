@@ -34,6 +34,7 @@ class Hades:
             client_id=self.__CLIENT_ID, client_secret=self.__CLIENT_SECRET
         )
         self.sp = spotipy.Spotify(auth_manager=self.auth_manager)
+        self.subdirs = False
 
     def get_ydl_opts(self, path):
         return {
@@ -59,9 +60,10 @@ class Hades:
         return string.translate(str.maketrans('\\/:*?"<>|', "__       "))
 
     def get_playlist_details(self, pl_uri):
+        pl = self.sp.playlist(pl_uri)
         offset = 0
         fields = "items.track.track_number,items.track.name,items.track.artists.name,items.track.album.name,items.track.album.release_date,total,items.track.album.images"
-        pl_name = self.sp.playlist(pl_uri)["name"]
+        pl_name = pl["name"]
         pl_items = self.sp.playlist_items(
             pl_uri,
             offset=offset,
@@ -102,7 +104,11 @@ class Hades:
                 additional_types=["track"],
             )["items"]
 
-        return {"pl_name": pl_name, "pl_tracks": pl_tracks}
+        return {
+            "pl_name": pl_name,
+            "pl_tracks": pl_tracks,
+            "pl_cover": pl["images"][0]["url"],
+        }
 
     def create_download_directory(self, dir_name):
         path = f"{download_base_path}/{dir_name}"
@@ -127,7 +133,7 @@ class Hades:
 
     def add_track_metadata(self, track_id, metadata, path):
         audiofile = eyed3.load(f"{path}/{track_id}.mp3")
-        if audiofile.tag == None:
+        if audiofile.tag is None:
             audiofile.initTag()
 
         # Add basic tags
@@ -146,9 +152,25 @@ class Hades:
         dst = f"{path}/{metadata['file_name']}.mp3"
         os.rename(src, dst)
 
+    def create_or_update_playlist(self, pl_details, path):
+        file_path = f"{path}/{pl_details['pl_name']}.m3u"
+        if os.path.exists(file_path):
+            pl_file = open(file_path, "r+")
+        else:
+            pl_file = open(file_path, "w")
+
+        pl_file.truncate(0)
+        for track in pl_details["pl_tracks"]:
+            print(f"{track['file_name']}.mp3", file=pl_file)
+        pl_file.close()
+
     def download_tracks(self, pl_uri):
         pl_details = self.get_playlist_details(pl_uri)
-        path = self.create_download_directory(pl_details["pl_name"])
+        path = (
+            self.create_download_directory(pl_details["pl_name"])
+            if self.subdirs
+            else download_base_path
+        )
         tracks = self.check_existing_tracks(pl_details, path)
         print(
             f"\033[1m\033[33m[info] Downloading {len(tracks)} tracks from {pl_details['pl_name']}\033[0m"
@@ -166,3 +188,5 @@ class Hades:
                     downloaded_track = ydl.download([url])
 
                     self.add_track_metadata(metadata["id"], track, path)
+
+        self.create_or_update_playlist(pl_details, path)
