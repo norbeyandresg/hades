@@ -8,11 +8,18 @@ from urllib import request as rq
 from urllib.parse import quote
 
 import eyed3
+from mutagen.mp4 import MP4
+import mutagen.mp4 as mp4
+
 import spotipy
 from pyfiglet import figlet_format
 from PyInquirer import print_json, prompt
 from spotipy.oauth2 import SpotifyClientCredentials
 from youtube_dl import YoutubeDL
+
+from dotenv import load_dotenv
+
+ftype="m4a"
 
 # Argparser
 parser = ArgumentParser(description="Download Spotify playlist the easy way")
@@ -20,12 +27,21 @@ parser = ArgumentParser(description="Download Spotify playlist the easy way")
 # Download path variable
 # if you want to change the download path use absolute path
 # example: /home/user/music
-download_base_path = "./downloads"
+download_base_path = "downloads"
+
+def get_tags_m4a(filename):
+    return MP4(filename).tags
+
+def set_tags_m4a(filename,tag, tagVal):
+    tags = MP4(filename).tags
+    tags[tag] = tagVal
+    tags.save(filename)
 
 
 class Hades:
     def __init__(self):
         # Envars
+        load_dotenv(".env")
         self.__CLIENT_ID = os.environ.get("CLIENT_ID")
         self.__CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
         self.__USER_ID = os.environ.get("USER_ID")
@@ -43,7 +59,7 @@ class Hades:
             "postprocessors": [
                 {
                     "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
+                    "preferredcodec": ftype,
                     "preferredquality": "320",
                 }
             ],
@@ -117,38 +133,67 @@ class Hades:
             print("Creation of the download directory failed")
 
     def check_existing_tracks(self, playlist, path):
-        existing_tracks = os.listdir(path)
-        tracks = [
-            track
-            for track in playlist["pl_tracks"]
-            if f"{track['file_name']}.mp3" not in existing_tracks
-        ]
-        return tracks
+        if not os.path.exists(path):
+            os.makedirs(path)
+            tracks=[]
+            return tracks
+        else:
+            existing_tracks = os.listdir(path)
+		
+            tracks = [
+				track
+				for track in playlist["pl_tracks"]
+				if f"{track['file_name']}.{ftype}" not in existing_tracks
+            ]
+            return tracks
 
     def add_track_metadata(self, track_id, metadata, path):
-        audiofile = eyed3.load(f"{path}/{track_id}.mp3")
-        if audiofile.tag == None:
-            audiofile.initTag()
+        if ftype=="mp3":
+            audiofile = eyed3.load(f"{path}/{track_id}.{ftype}")
+            if audiofile.tag == None:
+                audiofile.initTag()
+            # Add basic tags
+            audiofile.tag.title = metadata["track_name"]
+            audiofile.tag.album = metadata["album_name"]
+            audiofile.tag.artist = metadata["artist_name"]
+            audiofile.tag.release_date = metadata["album_date"]
+            audiofile.tag.track_num = metadata["track_number"]
 
-        # Add basic tags
-        audiofile.tag.title = metadata["track_name"]
-        audiofile.tag.album = metadata["album_name"]
-        audiofile.tag.artist = metadata["artist_name"]
-        audiofile.tag.release_date = metadata["album_date"]
-        audiofile.tag.track_num = metadata["track_number"]
+            album_art = rq.urlopen(metadata["album_art"]).read()
+            audiofile.tag.images.set(3, album_art, "image/jpeg")
+            audiofile.tag.save()
+        else:
+            audiofile = MP4(f"{path}/{track_id}.{ftype}")
+            if audiofile.tags is None:
+                audiofile.add_tags()
+            # Add basic tags
+            audiofile.tags['\xa9nam'] = metadata["track_name"]
+            audiofile.tags['\xa9alb'] = metadata["album_name"]
+            audiofile.tags['\xa9ART'] = metadata["artist_name"]
+            audiofile.tags['aART'] = metadata["artist_name"]
+            audiofile.tags['\xa9day'] = metadata["album_date"]
+            print(metadata["track_number"])
+            values=[(int(metadata["track_number"]), 100)]
+            
+            audiofile.tags['trkn'] = values
 
-        album_art = rq.urlopen(metadata["album_art"]).read()
-        audiofile.tag.images.set(3, album_art, "image/jpeg")
-        audiofile.tag.save()
+            album_art = rq.urlopen(metadata["album_art"]).read()
+            audiofile.tags['covr']=[bytes(mp4.MP4Cover(album_art,imageformat=mp4.MP4Cover.FORMAT_JPEG))]
+            audiofile.save(f"{path}/{track_id}.{ftype}")
+            
+
+
+        
 
         # Update downloaded file name
-        src = f"{path}/{track_id}.mp3"
-        dst = f"{path}/{metadata['file_name']}.mp3"
+        src = f"{path}/{track_id}.{ftype}"
+        dst = f"{path}/{metadata['file_name']}.{ftype}"
         os.rename(src, dst)
 
     def download_tracks(self, pl_uri):
         pl_details = self.get_playlist_details(pl_uri)
-        path = self.create_download_directory(pl_details["pl_name"])
+        pl_details["pl_name"]=pl_details["pl_name"].strip()
+        path = self.create_download_directory(pl_details["pl_name"].strip())
         tracks = self.check_existing_tracks(pl_details, path)
         print(
             f"\033[1m\033[33m[info] Downloading {len(tracks)} tracks from {pl_details['pl_name']}\033[0m"
