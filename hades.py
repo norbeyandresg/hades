@@ -12,7 +12,13 @@ import spotipy
 from pyfiglet import figlet_format
 from PyInquirer import print_json, prompt
 from spotipy.oauth2 import SpotifyClientCredentials
-from youtube_dl import YoutubeDL
+from yt_dlp import YoutubeDL
+
+# Load envars
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # Argparser
 parser = ArgumentParser(description="Download Spotify playlist the easy way")
