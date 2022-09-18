@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+ffprobe.exe
+ffplay.exe
+ffmpeg.exe
+avutil-57.dll
+avformat-59.dll
+avfilter-8.dll
+avdevice-59.dll
+avcodec-59.dll
+postproc-56.dll
+swresample-4.dll
+swscale-6.dll
