@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 import os
+
 from argparse import ArgumentParser
-
 from pyfiglet import figlet_format
-from PyInquirer import Separator, prompt
+from inquirer import prompt
 
-from hades import Hades, download_base_path
-from validators import PlaylistURIValidator
+from hades import Hades
+
+# Download path variable
+# if you want to change the download path use absolute path
+# example: /home/user/music
+download_base_path = "./downloads"
 
 # Argparser
 parser = ArgumentParser(description="Download Spotify playlist the easy way")
-
 
 class HadesUI:
     def __init__(self, pl_uri=None):
@@ -36,7 +39,7 @@ class HadesUI:
                     {"name": "Download from uri/url", "value": "download_playlist"},
                     {"name": "Manage my playlists", "value": "manage_playlists"},
                     {"name": "Quit", "value": "quit"},
-                    Separator(),
+                    #Separator(),
                     {
                         "name": "Current download path",
                         "disabled": f"{download_base_path}",
@@ -62,7 +65,7 @@ class HadesUI:
                 "name": "pl_uri",
                 "message": "Playlist uri or url to download:",
                 "default": "back",
-                "validate": PlaylistURIValidator,
+                #"validate": PlaylistURIValidator,
             }
         ]
         response = prompt(input)["pl_uri"]
@@ -108,3 +111,5 @@ if __name__ == "__main__":
         "--pl_uri", metavar="playlist_uri", type=str, help="Spotify playlist uri"
     )
     HadesUI(parser.parse_args().pl_uri)
+
+    #hades = Hades()

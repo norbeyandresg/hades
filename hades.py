@@ -9,8 +9,6 @@ from urllib.parse import quote
 
 import eyed3
 import spotipy
-from pyfiglet import figlet_format
-from PyInquirer import print_json, prompt
 from spotipy.oauth2 import SpotifyClientCredentials
 from yt_dlp import YoutubeDL
 
